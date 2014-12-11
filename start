@@ -1,9 +1,26 @@
 #!/bin/bash
 set -e
 
-DB_NAME=${DB_NAME:-}
-DB_USER=${DB_USER:-}
-DB_PASS=${DB_PASS:-}
+# Redmine
+REDMINE_DB_NAME=${REDMINE_DB_NAME:-}
+REDMINE_DB_USER=${REDMINE_DB_USER:-}
+REDMINE_DB_PASS=${REDMINE_DB_PASS:-}
+
+# Gerrit
+GERRIT_DB_NAME=${GERRIT_DB_NAME:-}
+GERRIT_DB_USER=${GERRIT_DB_USER:-}
+GERRIT_DB_PASS=${GERRIT_DB_PASS:-}
+
+# Gitlab
+GITLAB_DB_NAME=${GITLAB_DB_NAME:-}
+GITLAB_DB_USER=${GITLAB_DB_USER:-}
+GITLAB_DB_PASS=${GITLAB_DB_PASS:-}
+
+# Trac
+TRAC_DB_NAME=${TRAC_DB_NAME:-}
+TRAC_DB_USER=${TRAC_DB_USER:-}
+TRAC_DB_PASS=${TRAC_DB_PASS:-}
+
 
 # disable error log
 sed 's/^log_error/# log_error/' -i /etc/mysql/my.cnf
@@ -41,6 +58,7 @@ sed 's/password = .*/password = /g' -i /etc/mysql/debian.cnf
 # initialize MySQL data directory
 if [ ! -d /var/lib/mysql/mysql ]; then
   echo "Installing database..."
+
   mysql_install_db --user=mysql >/dev/null 2>&1
 
   # start mysql server
@@ -69,8 +87,8 @@ if [ ! -d /var/lib/mysql/mysql ]; then
   /usr/bin/mysqladmin --defaults-file=/etc/mysql/debian.cnf shutdown
 fi
 
-# create new user / database
-if [ -n "${DB_USER}" -o -n "${DB_NAME}" ]; then
+# create new redmine user / database
+if [ -n "${REDMINE_DB_USER}" -o -n "${REDMINE_DB_NAME}" ]; then
   /usr/bin/mysqld_safe >/dev/null 2>&1 &
 
   # wait for mysql server to start (max 30 seconds)
@@ -85,14 +103,102 @@ if [ -n "${DB_USER}" -o -n "${DB_NAME}" ]; then
     sleep 1
   done
 
-  if [ -n "${DB_NAME}" ]; then
-    echo "Creating database \"${DB_NAME}\"..."
+  if [ -n "${REDMINE_DB_NAME}" ]; then
+    echo "Creating database \"${REDMINE_DB_NAME}\"..."
     mysql --defaults-file=/etc/mysql/debian.cnf \
-      -e "CREATE DATABASE IF NOT EXISTS \`${DB_NAME}\` DEFAULT CHARACTER SET \`utf8\` COLLATE \`utf8_unicode_ci\`;"
-    if [ -n "${DB_USER}" ]; then
-      echo "Granting access to database \"${DB_NAME}\" for user \"${DB_USER}\"..."
+      -e "CREATE DATABASE IF NOT EXISTS \`${REDMINE_DB_NAME}\` DEFAULT CHARACTER SET \`utf8\` COLLATE \`utf8_unicode_ci\`;"
+    if [ -n "${REDMINE_DB_USER}" ]; then
+      echo "Granting access to database \"${REDMINE_DB_NAME}\" for user \"${REDMINE_DB_USER}\"..."
       mysql --defaults-file=/etc/mysql/debian.cnf \
-        -e "GRANT ALL PRIVILEGES ON \`${DB_NAME}\`.* TO '${DB_USER}' IDENTIFIED BY '${DB_PASS}';"
+        -e "GRANT ALL PRIVILEGES ON \`${REDMINE_DB_NAME}\`.* TO '${REDMINE_DB_USER}' IDENTIFIED BY '${REDMINE_DB_PASS}';"
+    fi
+  fi
+  /usr/bin/mysqladmin --defaults-file=/etc/mysql/debian.cnf shutdown
+fi
+
+
+# create new gerrit user / database
+if [ -n "${GERRIT_DB_USER}" -o -n "${GERRIT_DB_NAME}" ]; then
+  /usr/bin/mysqld_safe >/dev/null 2>&1 &
+
+  # wait for mysql server to start (max 30 seconds)
+  timeout=30
+  while ! /usr/bin/mysqladmin -u root status >/dev/null 2>&1
+  do
+    timeout=$(($timeout - 1))
+    if [ $timeout -eq 0 ]; then
+      echo "Could not connect to mysql server. Aborting..."
+      exit 1
+    fi
+    sleep 1
+  done
+
+  if [ -n "${GERRIT_DB_NAME}" ]; then
+    echo "Creating database \"${GERRIT_DB_NAME}\"..."
+    mysql --defaults-file=/etc/mysql/debian.cnf \
+      -e "CREATE DATABASE IF NOT EXISTS \`${GERRIT_DB_NAME}\` DEFAULT CHARACTER SET \`utf8\` COLLATE \`utf8_unicode_ci\`;"
+    if [ -n "${GERRIT_DB_USER}" ]; then
+      echo "Granting access to database \"${GERRIT_DB_NAME}\" for user \"${GERRIT_DB_USER}\"..."
+      mysql --defaults-file=/etc/mysql/debian.cnf \
+        -e "GRANT ALL PRIVILEGES ON \`${GERRIT_DB_NAME}\`.* TO '${GERRIT_DB_USER}' IDENTIFIED BY '${GERRIT_DB_PASS}';"
+    fi
+  fi
+  /usr/bin/mysqladmin --defaults-file=/etc/mysql/debian.cnf shutdown
+fi
+
+# create new gitlab user / database
+if [ -n "${GITLAB_DB_USER}" -o -n "${GITLAB_DB_NAME}" ]; then
+  /usr/bin/mysqld_safe >/dev/null 2>&1 &
+
+  # wait for mysql server to start (max 30 seconds)
+  timeout=30
+  while ! /usr/bin/mysqladmin -u root status >/dev/null 2>&1
+  do
+    timeout=$(($timeout - 1))
+    if [ $timeout -eq 0 ]; then
+      echo "Could not connect to mysql server. Aborting..."
+      exit 1
+    fi
+    sleep 1
+  done
+
+  if [ -n "${GITLAB_DB_NAME}" ]; then
+    echo "Creating database \"${GITLAB_DB_NAME}\"..."
+    mysql --defaults-file=/etc/mysql/debian.cnf \
+      -e "CREATE DATABASE IF NOT EXISTS \`${GITLAB_DB_NAME}\` DEFAULT CHARACTER SET \`utf8\` COLLATE \`utf8_unicode_ci\`;"
+    if [ -n "${GITLAB_DB_USER}" ]; then
+      echo "Granting access to database \"${GITLAB_DB_NAME}\" for user \"${GITLAB_DB_USER}\"..."
+      mysql --defaults-file=/etc/mysql/debian.cnf \
+        -e "GRANT ALL PRIVILEGES ON \`${GITLAB_DB_NAME}\`.* TO '${GITLAB_DB_USER}' IDENTIFIED BY '${GITLAB_DB_PASS}';"
+    fi
+  fi
+  /usr/bin/mysqladmin --defaults-file=/etc/mysql/debian.cnf shutdown
+fi
+
+# create new trac user / database
+if [ -n "${TRAC_DB_USER}" -o -n "${TRAC_DB_NAME}" ]; then
+  /usr/bin/mysqld_safe >/dev/null 2>&1 &
+
+  # wait for mysql server to start (max 30 seconds)
+  timeout=30
+  while ! /usr/bin/mysqladmin -u root status >/dev/null 2>&1
+  do
+    timeout=$(($timeout - 1))
+    if [ $timeout -eq 0 ]; then
+      echo "Could not connect to mysql server. Aborting..."
+      exit 1
+    fi
+    sleep 1
+  done
+
+  if [ -n "${TRAC_DB_NAME}" ]; then
+    echo "Creating database \"${TRAC_DB_NAME}\"..."
+    mysql --defaults-file=/etc/mysql/debian.cnf \
+      -e "CREATE DATABASE IF NOT EXISTS \`${TRAC_DB_NAME}\` DEFAULT CHARACTER SET \`utf8\` COLLATE \`utf8_unicode_ci\`;"
+    if [ -n "${TRAC_DB_USER}" ]; then
+      echo "Granting access to database \"${TRAC_DB_NAME}\" for user \"${TRAC_DB_USER}\"..."
+      mysql --defaults-file=/etc/mysql/debian.cnf \
+        -e "GRANT ALL PRIVILEGES ON \`${TRAC_DB_NAME}\`.* TO '${TRAC_DB_USER}' IDENTIFIED BY '${TRAC_DB_PASS}';"
     fi
   fi
   /usr/bin/mysqladmin --defaults-file=/etc/mysql/debian.cnf shutdown
